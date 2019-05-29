@@ -1,0 +1,10 @@
+
+[System.Collections.ArrayList]$new = @()
+
+for ($i=0; $i -lt $processes.Length; $i++) {
+    $new.Add(0)
+    for ($j=0; $j -lt $processes[$i].Group.Count; $j++) {
+        $new[$i] += $processes[$i].Group[$j].WS/1MB
+    }
+}
+$new | Sort-Object -Descending
