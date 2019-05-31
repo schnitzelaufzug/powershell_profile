@@ -1,7 +1,4 @@
-﻿Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-
-# Get all processes and group them by processname ex. 'firefox'
+﻿# Get all processes and group them by processname ex. 'firefox'
 $processes = ps | Select-Object -Property ProcessName, Id, WS | Group-Object -Property ProcessName
 # Initializes arrays with the size of processes array.length
 $names = New-Object 'string[]' $processes.Length
@@ -30,19 +27,4 @@ foreach ($name in $names) {
 # Sorts the Hashtable to get the "haviest" processes
 $data = $arr.GetEnumerator() | Sort-Object -Property value -Descending | Select-Object -First 5
 
-# Create window
-$form = New-Object System.Windows.Forms.Form
-$form.TopMost = true
-$form.Text = 'Top 5 most memory consuming programms'
-$form.Size = New-Object System.Drawing.Size(300,300)
-$form.StartPosition = 'CenterScreen'
-
-# Create GridView
-$textBox = new-object System.Windows.Forms.TextBox
-
-$textBox.Multiline = true
-$textBox.Text = $data[0]
-
-$form.Controls.Add($textBox)
-
-$form.ShowDialog()
+$data | Out-GridView
