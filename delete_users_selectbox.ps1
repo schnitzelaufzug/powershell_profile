@@ -57,11 +57,13 @@ $label.Text = 'Select a script'
 $form.Controls.Add($label)
 
 
-# Create selece box for user
+# Listbox
 $listBox = New-Object System.Windows.Forms.ListBox
 $listBox.Location = New-Object System.Drawing.Point(20,40)
 $listBox.Size = New-Object System.Drawing.Size(300,20)
 $listBox.Height = 50
+$listBox.SelectionMode = 'MultiExtended'
+
 # Listitems
 [void]$listBox.Items.Add('Delete only local Users except admin')
 [void]$listBox.Items.Add('Delete all domaine users except admin and your user')
