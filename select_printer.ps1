@@ -1,8 +1,10 @@
 ﻿Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+# We need to import this to make the window not look like the 90s
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 
+# Deletes all network printers attatched to that pc
 function delete_printers($printServer)
 {
     # need to get rid of backslashes so we can compare it to beginning of printer name
@@ -10,6 +12,7 @@ function delete_printers($printServer)
     
     # Get all printers installed on that pc
     $pcPrinters = Get-WmiObject -Class Win32_Printer -ComputerName $env:COMPUTERNAME | Select-Object Name
+
 
     # Create new array to collect only network printers
     $listOfPrinters = New-Object 'string[]' $pcPrinters.Count
@@ -30,6 +33,13 @@ function delete_printers($printServer)
     foreach ($printer in $listOfPrinters) {
         (New-Object -ComObject WScript.Network).RemovePrinterConnection($printer)
     }
+}
+
+
+# Delete all local + Network Printers
+function delete_printers2()
+{
+    Get-WmiObject -Class Win32_Printer -ComputerName $env:COMPUTERNAME | ForEach-Object {$_.Delete()}
 }
 
 
@@ -100,7 +110,7 @@ $departments = @{
 $form = New-Object System.Windows.Forms.Form
 $form.TopMost = $true
 $form.Text = 'Install Printer EOD'
-$form.Size = New-Object System.Drawing.Size(400,400)
+$form.Size = New-Object System.Drawing.Size(350,210)
 $form.StartPosition = 'CenterScreen'
 $form.BackColor = 'white'
 $form.FormBorderStyle = 'Fixed3D'
@@ -108,7 +118,7 @@ $form.FormBorderStyle = 'Fixed3D'
 
 # OK button
 $OKButton = New-Object System.Windows.Forms.Button
-$OKButton.Location = New-Object System.Drawing.Point(20,80)
+$OKButton.Location = New-Object System.Drawing.Point(20,140)
 $OKButton.Size = New-Object System.Drawing.Size(50,25)
 $OKButton.Text = "OK"
 $OKButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
@@ -118,7 +128,7 @@ $form.Controls.Add($OKButton)
 
 # Cancel button
 $cancelButton = New-Object System.Windows.Forms.Button
-$cancelButton.Location = New-Object System.Drawing.Point(270,80)
+$cancelButton.Location = New-Object System.Drawing.Point(270,140)
 $cancelButton.Size = New-Object System.Drawing.Size(50,25)
 $cancelButton.Text = "Cacel"
 $cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
@@ -134,7 +144,7 @@ $label.Text = 'Abteilungsauswahl:'
 $form.Controls.Add($label)
 
 
-# Dropdown
+# Dropdown for departments
 $dropDown = new-object System.Windows.Forms.ComboBox
 $dropDown.Location = new-object System.Drawing.Size(20,40)
 $dropDown.Size = new-object System.Drawing.Size(300,50)
@@ -148,9 +158,46 @@ foreach ($department in $departments.GetEnumerator()) {
 $dropDown.SelectedIndex = 0
 
 
-[void]$form.ShowDialog()
+# Labeltext for dropdown2
+$label2 = New-Object System.Windows.Forms.Label
+$label2.Location = New-Object System.Drawing.Point(20,80)
+$label2.Size = New-Object System.Drawing.Size(100,20)
+$label2.Text = 'Resette Drucker:'
+$form.Controls.Add($label2)
 
-delete_printers $printServer
-install_printers $printServer $departments[$dropDown.SelectedItem]
-$defaultPrinter = set_default $printServer $departments[$dropDown.SelectedItem]
-execute_testprint $printServer $defaultPrinter
+
+# Dropdown2 user can chose if all printers getting resetted, or only network printers
+$dropDown2 = new-object System.Windows.Forms.ComboBox
+$dropDown2.Location = new-object System.Drawing.Size(20,100)
+$dropDown2.Size = new-object System.Drawing.Size(300,50)
+$form.Controls.Add($dropDown2)
+
+
+# Dropdown2 items
+[void]$dropDown2.Items.Add('Nur Netzwerk');
+[void]$dropDown2.Items.Add('Alle');
+$dropDown2.SelectedIndex = 0
+
+
+$result = $form.ShowDialog()
+
+
+if ($result -eq 'OK') {
+    # Decides if all printers get deleted, or only network printers
+    if ($dropDown2.SelectedItem -eq 'Alle') {
+        delete_printers2
+    } else {
+        delete_printers $printServer
+    }
+
+    install_printers $printServer $departments[$dropDown.SelectedItem]
+    $defaultPrinter = set_default $printServer $departments[$dropDown.SelectedItem]
+
+    # Success message if printers got resetted
+    $testprint = [System.Windows.Forms.MessageBox]::Show("Die Drucker wurden erfolgreich eingerichtet! Möchten Sie einen Testdruck starten?"," Success ",4)
+
+    # Start testprint if user said so
+    if ($testprint -eq 'Yes') {
+        execute_testprint $printServer $defaultPrinter
+    }
+}
